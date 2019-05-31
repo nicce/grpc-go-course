@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"grpc-go-course/greet/greetpb"
 	"log"
@@ -10,6 +11,16 @@ import (
 )
 
 type server struct{}
+
+func (*server) Greet(ctx context.Context, req *greetpb.GreetRequest) (*greetpb.GreetResponse, error) {
+	firstName := req.GetGreeting().GetFirstName()
+
+	res := &greetpb.GreetResponse{
+		Result: "Hello" + firstName,
+	}
+
+	return res, nil
+}
 
 func main() {
 	fmt.Println("Starting server...")
