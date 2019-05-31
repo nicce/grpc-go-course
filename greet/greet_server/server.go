@@ -1,10 +1,11 @@
 package main
 
 import (
-	"log"
 	"fmt"
-	"net" 
 	"grpc-go-course/greet/greetpb"
+	"log"
+	"net"
+
 	"google.golang.org/grpc"
 )
 
@@ -17,7 +18,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	s:= grpc.NewServer()
+	s := grpc.NewServer()
 	greetpb.RegisterGreetServiceServer(s, &server{})
 
 	if err := s.Serve(lis); err != nil {
