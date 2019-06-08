@@ -6,6 +6,7 @@ import (
 	"grpc-go-course/calculator/calculatorpb"
 	"io"
 	"log"
+	"time"
 
 	"google.golang.org/grpc"
 )
@@ -24,7 +25,8 @@ func main() {
 
 	//doUnary(c)
 	//doServerStreaming(c)
-	doClientStreaming(c)
+	//doClientStreaming(c)
+	doBiDiStreaming(c)
 }
 
 func doUnary(c calculatorpb.CalculatorServiceClient) {
@@ -99,4 +101,77 @@ func doClientStreaming(c calculatorpb.CalculatorServiceClient) {
 	}
 
 	log.Printf("Compute average response: %v", res)
+}
+
+func doBiDiStreaming(c calculatorpb.CalculatorServiceClient) {
+	log.Printf("Starting to do a bi di streaming RPC...\n")
+
+	reqList := []*calculatorpb.FindMaximumRequest{
+		&calculatorpb.FindMaximumRequest{
+			Number: int32(3),
+		},
+		&calculatorpb.FindMaximumRequest{
+			Number: int32(2),
+		},
+		&calculatorpb.FindMaximumRequest{
+			Number: int32(5),
+		},
+		&calculatorpb.FindMaximumRequest{
+			Number: int32(8),
+		},
+		&calculatorpb.FindMaximumRequest{
+			Number: int32(1),
+		},
+		&calculatorpb.FindMaximumRequest{
+			Number: int32(3),
+		},
+		&calculatorpb.FindMaximumRequest{
+			Number: int32(9),
+		},
+	}
+
+	stream, err := c.FindMaximum(context.Background())
+
+	if err != nil {
+		log.Fatalf("Error while creating stream: %v", err)
+	}
+
+	waitc := make(chan struct{})
+
+	go func() {
+		//Send requests
+
+		for _, req := range reqList {
+			log.Printf("Sending req: %v", req)
+			err := stream.Send(req)
+			if err != nil {
+				log.Fatalf("Errpr sending req: %v", err)
+				close(waitc)
+			}
+			time.Sleep(1000 * time.Millisecond)
+		}
+		stream.CloseSend()
+
+	}()
+
+	go func() {
+		// Receive data
+		for {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+
+			if err != nil {
+				log.Fatalf("Error receiving stream: %v", err)
+				break
+			}
+
+			log.Printf("Maximum is: %v \n", res.GetMax())
+
+		}
+		close(waitc)
+	}()
+
+	<-waitc
 }
